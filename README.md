@@ -16,3 +16,35 @@ TX side:
 
 RX side:
 ![rx_open](https://github.com/user-attachments/assets/60e46502-5a22-4d48-904a-930cece4e9c9)
+
+
+## Current status
+
+- LoRa P2P link verified
+- TX board: custom letterbox board with RAK3172
+- RX board: ESP32-S3-Zero + SX1262 Core1262-HF
+- Verified payload reception on receiver serial monitor
+- Typical desk-test RSSI: about -24 dBm
+- Typical desk-test SNR: about 10 dB
+
+## Known-good radio settings
+
+- Frequency: 868.0 MHz
+- Spreading Factor: SF9
+- Bandwidth: 125 kHz
+- Coding Rate: 4/5
+- TX Power: 14 dBm
+
+## Receiver wiring
+
+| SX1262 | ESP32-S3-Zero |
+|---|---|
+| VCC | 3.3V |
+| GND | GND |
+| MOSI | GPIO11 |
+| MISO | GPIO13 |
+| SCK | GPIO12 |
+| NSS | GPIO10 |
+| BUSY | GPIO9 |
+| DIO1 | GPIO7 |
+| RST | GPIO8 |
