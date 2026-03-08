@@ -26,6 +26,9 @@ RX side:
 - Verified payload reception on receiver serial monitor
 - Typical desk-test RSSI: about -24 dBm
 - Typical desk-test SNR: about 10 dB
+- Now sleep/wake and sensor ambient-cancellation delta is implemented
+- Test interval at 30s transmits for now - later set to 30m or more
+- HA will handle sensor delta thresholds instead of sensor itself
 
 ## Known-good radio settings
 
