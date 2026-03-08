@@ -52,3 +52,7 @@ RX side:
 | BUSY | GPIO9 |
 | DIO1 | GPIO7 |
 | RST | GPIO8 |
+
+This is how the sensor live updates in HA overview looks now:
+<img width="541" height="353" alt="MMsensorDataOverview" src="https://github.com/user-attachments/assets/d4042ae8-a6cc-41f8-8cb9-a3ed1a40d5dd" />
+
