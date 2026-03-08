@@ -1,33 +1,124 @@
 #include <RadioLib.h>
 #include <SPI.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
 
-// Use a dedicated SPI instance (ESP32-S3 has multiple SPI peripherals)
+// ===== Wi-Fi / MQTT =====
+const char* WIFI_SSID = "WIFI_SSID";
+const char* WIFI_PASSWORD = "WIFI_PASSWORD";
+const char* MQTT_HOST = "MQTT_HOST";   // e.g. "192.168.1.50"
+const uint16_t MQTT_PORT = 1883;
+const char* MQTT_USER = "MQTT_USER";
+const char* MQTT_PASSWORD = "MQTT_PASSWORD";
+
+const char* MQTT_TOPIC_STATE = "mightymailbox/state";
+const char* MQTT_TOPIC_AVAIL = "mightymailbox/availability";
+
+WiFiClient wifiClient;
+PubSubClient mqttClient(wifiClient);
+
+// ===== LoRa / SPI =====
 SPIClass spi = SPIClass(FSPI);
 
-// Tell RadioLib to use *our* SPI instance
 SX1262 radio = new Module(
   10,  // NSS (CS)
   7,   // DIO1
   8,   // RESET
   9,   // BUSY
-  spi  // <--- IMPORTANT
+  spi
 );
+
+void connectWiFi() {
+  if (WiFi.status() == WL_CONNECTED) return;
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  Serial.print("Connecting WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.print("WiFi connected, IP: ");
+  Serial.println(WiFi.localIP());
+}
+
+void connectMQTT() {
+  while (!mqttClient.connected()) {
+    Serial.print("Connecting MQTT...");
+    String clientId = "MightyMailboxRX-" + String((uint32_t)ESP.getEfuseMac(), HEX);
+
+    // LWT: publish offline if receiver disappears
+    bool ok = mqttClient.connect(
+      clientId.c_str(),
+      MQTT_USER,
+      MQTT_PASSWORD,
+      MQTT_TOPIC_AVAIL,
+      0,
+      true,
+      "offline"
+    );
+
+    if (ok) {
+      Serial.println("connected");
+      mqttClient.publish(MQTT_TOPIC_AVAIL, "online", true);
+    } else {
+      Serial.print("failed, rc=");
+      Serial.println(mqttClient.state());
+      delay(2000);
+    }
+  }
+}
+
+bool parseMailboxPayload(
+  const String& input,
+  int& batteryMv,
+  int& d1,
+  int& d2
+) {
+  batteryMv = -1;
+  d1 = -1;
+  d2 = -1;
+
+  int batPos = input.indexOf("BAT=");
+  int d1Pos  = input.indexOf("D1=");
+  int d2Pos  = input.indexOf("D2=");
+
+  if (batPos < 0 || d1Pos < 0 || d2Pos < 0) {
+    return false;
+  }
+
+  int batEnd = input.indexOf(',', batPos);
+  int d1End  = input.indexOf(',', d1Pos);
+
+  String batStr = (batEnd > 0) ? input.substring(batPos + 4, batEnd) : input.substring(batPos + 4);
+  String d1Str  = (d1End > 0)  ? input.substring(d1Pos + 3, d1End)  : input.substring(d1Pos + 3);
+  String d2Str  = input.substring(d2Pos + 3);
+
+  batteryMv = batStr.toInt();
+  d1 = d1Str.toInt();
+  d2 = d2Str.toInt();
+
+  return (batteryMv >= 0 && d1 >= 0 && d2 >= 0);
+}
 
 void setup() {
   Serial.begin(115200);
-  delay(200);
+  delay(300);
 
-  // Define the SPI pins you physically wired
-  // begin(SCK, MISO, MOSI, SS)
+  connectWiFi();
+  mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+  connectMQTT();
+
   spi.begin(
-    12, // SCK  -> GPIO12
-    13, // MISO -> GPIO13
-    11, // MOSI -> GPIO11
-    10  // SS/CS -> GPIO10 (same as NSS)
+    12, // SCK
+    13, // MISO
+    11, // MOSI
+    10  // SS/CS
   );
 
   Serial.print("Initializing SX1262... ");
-
   int state = radio.begin(868.0);
   Serial.println(state);
 
@@ -36,10 +127,7 @@ void setup() {
     while (true) delay(1000);
   }
 
-  // Many SX1262 modules use DIO2 to control the RF switch.
-  // If your module does, enabling this is required for TX/RX to work reliably.
   radio.setDio2AsRfSwitch(true);
-
   radio.setSpreadingFactor(9);
   radio.setBandwidth(125.0);
   radio.setCodingRate(5);
@@ -51,17 +139,47 @@ void setup() {
 }
 
 void loop() {
+  if (WiFi.status() != WL_CONNECTED) {
+    connectWiFi();
+  }
+
+  if (!mqttClient.connected()) {
+    connectMQTT();
+  }
+  mqttClient.loop();
+
   String str;
   int state = radio.receive(str);
 
   if (state == RADIOLIB_ERR_NONE) {
+    float rssi = radio.getRSSI();
+    float snr = radio.getSNR();
+
     Serial.print("Received: ");
     Serial.println(str);
-
     Serial.print("RSSI: ");
-    Serial.print(radio.getRSSI());
+    Serial.print(rssi);
     Serial.print(" dBm, SNR: ");
-    Serial.print(radio.getSNR());
+    Serial.print(snr);
     Serial.println(" dB");
+
+    int batteryMv, d1, d2;
+    if (parseMailboxPayload(str, batteryMv, d1, d2)) {
+      char json[160];
+      snprintf(
+        json,
+        sizeof(json),
+        "{\"battery_mv\":%d,\"d1\":%d,\"d2\":%d,\"rssi\":%.1f,\"snr\":%.1f}",
+        batteryMv, d1, d2, rssi, snr
+      );
+
+      bool ok = mqttClient.publish(MQTT_TOPIC_STATE, json, true);
+      Serial.print("MQTT publish: ");
+      Serial.println(ok ? "OK" : "FAIL");
+    } else {
+      Serial.println("Payload parse failed");
+    }
   }
+
+  radio.startReceive();
 }
