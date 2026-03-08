@@ -169,7 +169,7 @@ void loop() {
       snprintf(
         json,
         sizeof(json),
-        "{\"battery_mv\":%d,\"d1\":%d,\"d2\":%d,\"rssi\":%.1f,\"snr\":%.1f}",
+        "{\"battery_mv\":%d,\"d1\":%d,\"d2\":%d,\"rssi\":%.1f,\"snr\":%.2f}",
         batteryMv, d1, d2, rssi, snr
       );
 
