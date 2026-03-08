@@ -29,6 +29,7 @@ RX side:
 - Now sleep/wake and sensor ambient-cancellation delta is implemented
 - Test interval at 30s transmits for now - later set to 30m or more
 - HA will handle sensor delta thresholds instead of sensor itself
+- Receiver now forwards LoRa messages and repackages them to MQTT/HA
 
 ## Known-good radio settings
 
