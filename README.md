@@ -65,4 +65,59 @@ This is how the sensor live updates in HA overview looks now:
 And this is the HA presentation side:
 <img width="1468" height="703" alt="presentationSide" src="https://github.com/user-attachments/assets/011de625-776e-4556-812f-cfe616d73986" />
 
+In HA configuration.yaml:
+mqtt:
+  sensor:
+    - name: "MightyMailbox Battery"
+      unique_id: mightymailbox_battery_mv
+      state_topic: "mightymailbox/state"
+      value_template: "{{ value_json.battery_mv }}"
+      unit_of_measurement: "mV"
+      state_class: measurement
+      device_class: voltage
 
+    - name: "MightyMailbox D1"
+      unique_id: mightymailbox_d1
+      state_topic: "mightymailbox/state"
+      value_template: "{{ value_json.d1 }}"
+      state_class: measurement
+
+    - name: "MightyMailbox D2"
+      unique_id: mightymailbox_d2
+      state_topic: "mightymailbox/state"
+      value_template: "{{ value_json.d2 }}"
+      state_class: measurement
+
+    - name: "MightyMailbox RSSI"
+      unique_id: mightymailbox_rssi
+      state_topic: "mightymailbox/state"
+      value_template: "{{ value_json.rssi }}"
+      unit_of_measurement: "dBm"
+      state_class: measurement
+
+    - name: "MightyMailbox SNR"
+      unique_id: mightymailbox_snr
+      state_topic: "mightymailbox/state"
+      value_template: "{{ value_json.snr }}"
+      unit_of_measurement: "dB"
+      state_class: measurement
+
+    - name: "MightyMailbox Last LoRa Minutes"
+      unique_id: mightymailbox_last_lora_min
+      state_topic: "mightymailbox/state"
+      value_template: "{{ value_json.last_lora_min }}"
+      unit_of_measurement: "min"
+      state_class: measurement
+
+And then for the Mail/Clear sensor in configuration.yaml:
+template:
+  - binary_sensor:
+      - name: "MightyMailbox Mail Present"
+        unique_id: mightymailbox_mail_present
+        device_class: occupancy
+        state: >
+          {{
+            states('sensor.mightymailbox_d1')|float(0) > 700
+            or
+            states('sensor.mightymailbox_d2')|float(0) > 700
+          }}
