@@ -110,6 +110,7 @@ mqtt:
       state_class: measurement
 
 And then for the Mail/Clear sensor in configuration.yaml:
+<code>
 template:
   - binary_sensor:
       - name: "MightyMailbox Mail Present"
@@ -121,3 +122,4 @@ template:
             or
             states('sensor.mightymailbox_d2')|float(0) > 700
           }}
+</code>
