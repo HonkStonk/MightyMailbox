@@ -54,5 +54,6 @@ RX side:
 | RST | GPIO8 |
 
 This is how the sensor live updates in HA overview looks now:
-<img width="541" height="353" alt="MMsensorDataOverview" src="https://github.com/user-attachments/assets/d4042ae8-a6cc-41f8-8cb9-a3ed1a40d5dd" />
+<img width="502" height="431" alt="overviewScreenshotMM" src="https://github.com/user-attachments/assets/e1c90ee3-d11c-45a6-a120-a7117080dc04" />
+
 
