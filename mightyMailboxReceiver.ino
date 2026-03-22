@@ -28,6 +28,12 @@ SX1262 radio = new Module(
   spi
 );
 
+// ===== Last LoRa tracking =====
+unsigned long lastValidLoraMillis = 0;
+unsigned long lastMinutePublishMillis = 0;
+int lastLoraMinutes = 0;
+bool everReceivedValidLora = false;
+
 void connectWiFi() {
   if (WiFi.status() == WL_CONNECTED) return;
 
@@ -49,7 +55,6 @@ void connectMQTT() {
     Serial.print("Connecting MQTT...");
     String clientId = "MightyMailboxRX-" + String((uint32_t)ESP.getEfuseMac(), HEX);
 
-    // LWT: publish offline if receiver disappears
     bool ok = mqttClient.connect(
       clientId.c_str(),
       MQTT_USER,
@@ -103,12 +108,44 @@ bool parseMailboxPayload(
   return (batteryMv >= 0 && d1 >= 0 && d2 >= 0);
 }
 
+bool publishFullState(int batteryMv, int d1, int d2, float rssi, float snr, int lastLoraMin) {
+  char json[192];
+  snprintf(
+    json,
+    sizeof(json),
+    "{\"battery_mv\":%d,\"d1\":%d,\"d2\":%d,\"rssi\":%.1f,\"snr\":%.2f,\"last_lora_min\":%d}",
+    batteryMv, d1, d2, rssi, snr, lastLoraMin
+  );
+
+  bool ok = mqttClient.publish(MQTT_TOPIC_STATE, json, true);
+  Serial.print("MQTT publish full state: ");
+  Serial.println(ok ? "OK" : "FAIL");
+  return ok;
+}
+
+bool publishLastLoraOnly(int lastLoraMin) {
+  char json[64];
+  snprintf(
+    json,
+    sizeof(json),
+    "{\"last_lora_min\":%d}",
+    lastLoraMin
+  );
+
+  bool ok = mqttClient.publish(MQTT_TOPIC_STATE, json, true);
+  Serial.print("MQTT publish last_lora_min only: ");
+  Serial.println(ok ? "OK" : "FAIL");
+  return ok;
+}
+
 void setup() {
   Serial.begin(115200);
   delay(300);
 
   connectWiFi();
   mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+  mqttClient.setKeepAlive(90);
+  mqttClient.setSocketTimeout(2);
   connectMQTT();
 
   spi.begin(
@@ -128,7 +165,7 @@ void setup() {
   }
 
   radio.setDio2AsRfSwitch(true);
-  radio.setSpreadingFactor(9);
+  radio.setSpreadingFactor(10);
   radio.setBandwidth(125.0);
   radio.setCodingRate(5);
   radio.setOutputPower(14);
@@ -136,6 +173,9 @@ void setup() {
   state = radio.startReceive();
   Serial.print("startReceive(): ");
   Serial.println(state);
+
+  // Start the minute timer from boot
+  lastMinutePublishMillis = millis();
 }
 
 void loop() {
@@ -165,19 +205,39 @@ void loop() {
 
     int batteryMv, d1, d2;
     if (parseMailboxPayload(str, batteryMv, d1, d2)) {
-      char json[160];
-      snprintf(
-        json,
-        sizeof(json),
-        "{\"battery_mv\":%d,\"d1\":%d,\"d2\":%d,\"rssi\":%.1f,\"snr\":%.2f}",
-        batteryMv, d1, d2, rssi, snr
-      );
+      everReceivedValidLora = true;
+      lastValidLoraMillis = millis();
+      lastMinutePublishMillis = millis();
+      lastLoraMinutes = 0;
 
-      bool ok = mqttClient.publish(MQTT_TOPIC_STATE, json, true);
-      Serial.print("MQTT publish: ");
-      Serial.println(ok ? "OK" : "FAIL");
+      publishFullState(batteryMv, d1, d2, rssi, snr, lastLoraMinutes);
     } else {
       Serial.println("Payload parse failed");
+    }
+  }
+
+  // If no valid LoRa has been received for more than 1 minute,
+  // increment lastLoraMinutes every minute and publish it.
+  unsigned long now = millis();
+
+  if (!everReceivedValidLora) {
+    // Optional: count from boot even before first valid packet ever arrives
+    if (now - lastMinutePublishMillis >= 60000UL) {
+      lastMinutePublishMillis += 60000UL;
+      lastLoraMinutes++;
+      Serial.print("No valid LoRa yet, lastLoraMinutes = ");
+      Serial.println(lastLoraMinutes);
+      publishLastLoraOnly(lastLoraMinutes);
+    }
+  } else {
+    if (now - lastValidLoraMillis >= 60000UL) {
+      if (now - lastMinutePublishMillis >= 60000UL) {
+        lastMinutePublishMillis += 60000UL;
+        lastLoraMinutes++;
+        Serial.print("Minutes since last valid LoRa = ");
+        Serial.println(lastLoraMinutes);
+        publishLastLoraOnly(lastLoraMinutes);
+      }
     }
   }
 
