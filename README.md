@@ -34,7 +34,7 @@ RX side:
 ## Known-good radio settings
 
 - Frequency: 868.0 MHz
-- Spreading Factor: SF9
+- Spreading Factor: SF10
 - Bandwidth: 125 kHz
 - Coding Rate: 4/5
 - TX Power: 14 dBm
