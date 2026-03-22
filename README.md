@@ -62,4 +62,7 @@ RX side:
 This is how the sensor live updates in HA overview looks now:
 <img width="502" height="431" alt="overviewScreenshotMM" src="https://github.com/user-attachments/assets/e1c90ee3-d11c-45a6-a120-a7117080dc04" />
 
+And this is the HA presentation side:
+<img width="1468" height="703" alt="presentationSide" src="https://github.com/user-attachments/assets/011de625-776e-4556-812f-cfe616d73986" />
+
 
