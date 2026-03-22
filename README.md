@@ -65,7 +65,11 @@ This is how the sensor live updates in HA overview looks now:
 And this is the HA presentation side:
 <img width="1468" height="703" alt="presentationSide" src="https://github.com/user-attachments/assets/011de625-776e-4556-812f-cfe616d73986" />
 
-In HA configuration.yaml:
+## MQTT sensors in `configuration.yaml`
+
+Add this to your Home Assistant `configuration.yaml` to create the MightyMailbox MQTT sensors.
+
+```yaml
 mqtt:
   sensor:
     - name: "MightyMailbox Battery"
@@ -108,6 +112,7 @@ mqtt:
       value_template: "{{ value_json.last_lora_min }}"
       unit_of_measurement: "min"
       state_class: measurement
+```
 
 ## Mail/Clear sensor in `configuration.yaml`
 
