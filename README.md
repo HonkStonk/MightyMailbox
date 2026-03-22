@@ -14,8 +14,14 @@ TX side:
 
 ![tx_bottom](https://github.com/user-attachments/assets/fc19430a-bea4-47a0-b881-f2b0352131ed)
 
+<img width="1677" height="1052" alt="sensorInMailbox" src="https://github.com/user-attachments/assets/bc671a05-23bb-4b1c-b0b0-567e1b17490e" />
+
+
+
 RX side:
 ![rx_open](https://github.com/user-attachments/assets/60e46502-5a22-4d48-904a-930cece4e9c9)
+
+![antenna](https://github.com/user-attachments/assets/122f4626-4fe5-462b-a48b-05c29b294435)
 
 
 ## Current status
