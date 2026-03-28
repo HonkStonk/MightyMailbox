@@ -37,6 +37,14 @@ RX side:
 - HA will handle sensor delta thresholds instead of sensor itself
 - Receiver now forwards LoRa messages and repackages them to MQTT/HA
 
+## CR2032 battery
+- Sleep current is measured to around 11µA (ok)
+- Using 30s transmission interval kills the cell through pulse load in a few hours/a day
+- Using 5 minutes transmission interval kills the cell in about 10 days in cold climate
+- Battery voltage before transmission is following outdoor temperature
+- Battery voltage does not go linearly down indicating death of system - instead it looks like internal resistance just goes up until it cannot handle the pulse load of a transmission anymore and abruptly stops transmitting forever
+- Testing 20 minutes transmission interval now
+
 ## Known-good radio settings
 
 - Frequency: 868.0 MHz
