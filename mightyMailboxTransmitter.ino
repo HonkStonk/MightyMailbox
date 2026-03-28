@@ -12,7 +12,7 @@
 #define vdiv      PB2
 
 // Test interval in seconds for CR2032 field test
-#define SAMPLE_PERIOD_S 30
+#define SAMPLE_PERIOD_S 1200 // 20 min now - 5 min gave 10 days on CR2032 - thinking pulse load is killing it
 
 struct SensorReading {
   uint16_t off_raw;
@@ -33,7 +33,7 @@ static void p2p_setup() {
   }
 
   if (!api.lora.pfreq.set(868000000)) die("ERROR: pfreq.set failed");
-  if (!api.lora.psf.set(9))           die("ERROR: psf.set failed");
+  if (!api.lora.psf.set(10))           die("ERROR: psf.set failed");
   if (!api.lora.pbw.set(125))         die("ERROR: pbw.set failed");
   if (!api.lora.pcr.set(1))           die("ERROR: pcr.set failed");
 
